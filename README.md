@@ -10,6 +10,7 @@ This repository contains a notebook-first, locally deployable computer-vision sy
 - `artifacts/CSCI435_Demonstration_Video.mp4` - 2 minute 5 second backup demonstration video generated from actual pipeline outputs.
 - `DEFENCE_GUIDE.md` - timed live-demonstration plan and likely questions.
 - `RUBRIC_COMPLIANCE.md` - requirement-to-evidence traceability matrix.
+- `THIRD_PARTY_NOTICES.md` - attribution and licensing notice for the optional YOLO11 experiment.
 
 ## Vision capabilities
 
@@ -53,6 +54,19 @@ $env:CSCI435_PORT="7861"
 .\.venv\Scripts\python.exe app.py
 ```
 
+### Optional experimental people/general-object tab
+
+An additional YOLO11n branch was tested on 240 unlabelled real-world images using conservative pseudo-labels. It is optional because pseudo-label metrics are not independent ground-truth accuracy and the general detector can confuse marker-like shapes. To enable it:
+
+```powershell
+py -3.10 -m venv .venv_general
+.\.venv_general\Scripts\python.exe -m pip install -r requirements-general.txt
+$env:CSCI435_ENABLE_GENERAL="1"
+.\.venv_general\Scripts\python.exe app.py
+```
+
+The original custom SVM still recognises `stop`, `warning`, and `safe` markers. The experimental model runs in a separate Gradio tab and adds people and everyday COCO objects; it does not replace the rubric-critical custom model.
+
 macOS/Linux equivalents:
 
 ```bash
@@ -88,11 +102,12 @@ The committed notebook was executed from top to bottom with no cell errors. Its 
 |---|---:|
 | Custom training images | 560 (140 per class) |
 | Held-out synthetic crop accuracy | 100.0% |
-| Mean end-to-end detection precision | 92.5% |
-| Mean end-to-end detection recall | 88.1% |
-| Mean end-to-end detection F1 | 89.8% |
-| Still-frame mean latency / throughput | 13.47 ms / 74.23 FPS |
-| Processed-video mean latency / throughput | 13.27 ms/frame / 75.36 FPS |
+| Mean end-to-end detection precision | 93.0% |
+| Mean end-to-end detection recall | 94.6% |
+| Mean end-to-end detection F1 | 93.1% |
+| Still-frame mean latency / throughput | 19.96 ms / 50.09 FPS |
+| Processed-video mean latency / throughput | 16.75 ms/frame / 59.72 FPS |
+| Real-style regression checks | Stop 98.0%; safe 94.6% |
 
 The 100% crop result applies only to the constrained synthetic held-out set; it is not a claim of real-world accuracy. Timing is CPU- and load-dependent, but the saved run exceeds the rubric's 10 FPS target by a wide margin.
 
@@ -102,14 +117,10 @@ The included custom dataset is **synthetic and programmatically generated** so t
 
 ## Repository submission
 
-This folder should be placed under Git version control and pushed to a private or public GitHub/GitLab repository accessible to the lecturer:
+The project repository is [NXRJ/CSIT435-Project](https://github.com/NXRJ/CSIT435-Project). Ensure the lecturer can access it before submission. For a fresh clone or replacement remote, the equivalent commands are:
 
 ```powershell
-git init
-git add .
-git commit -m "Complete CSCI435 integrated vision system"
-git branch -M main
-git remote add origin <YOUR_REPOSITORY_URL>
+git remote add origin https://github.com/NXRJ/CSIT435-Project.git
 git push -u origin main
 ```
 

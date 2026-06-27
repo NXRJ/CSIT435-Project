@@ -1,0 +1,14 @@
+{
+  "input": "train_000120.jpg",
+  "runs_after_warmup": 20,
+  "mean_wall_latency_ms": 37.97,
+  "p95_wall_latency_ms": 39.07,
+  "wall_fps": 26.34,
+  "detections": {
+    "person": 6,
+    "dining table": 1,
+    "bottle": 1,
+    "wine glass": 2
+  },
+  "meets_project_10_fps_requirement": true
+}

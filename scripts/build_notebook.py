@@ -461,15 +461,68 @@ def create_edge_view(frame_bgr: np.ndarray, edges: np.ndarray) -> np.ndarray:
     return cv2.addWeighted(frame_bgr, 0.70, overlay, 0.30, 0)
 
 
-def colour_candidate_mask(frame_bgr: np.ndarray) -> np.ndarray:
+def colour_candidate_masks(frame_bgr: np.ndarray) -> dict[str, np.ndarray]:
+    '''Return separate colour masks so neighbouring marker colours cannot merge.'''
     hsv = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2HSV)
     red = cv2.inRange(hsv, (0, 70, 45), (12, 255, 255)) | cv2.inRange(hsv, (168, 70, 45), (180, 255, 255))
     yellow = cv2.inRange(hsv, (16, 65, 55), (42, 255, 255))
-    green = cv2.inRange(hsv, (40, 55, 40), (92, 255, 255))
-    mask = red | yellow | green
+    green = cv2.inRange(hsv, (38, 45, 35), (96, 255, 255))
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-    return cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=2)
+    masks = {}
+    for name, mask in {"red": red, "yellow": yellow, "green": green}.items():
+        cleaned = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+        masks[name] = cv2.morphologyEx(cleaned, cv2.MORPH_CLOSE, kernel, iterations=2)
+    return masks
+
+
+def colour_candidate_mask(frame_bgr: np.ndarray) -> np.ndarray:
+    masks = colour_candidate_masks(frame_bgr)
+    return masks["red"] | masks["yellow"] | masks["green"]
+
+
+def shape_colour_hint(
+    source_bgr: np.ndarray,
+    contour: np.ndarray,
+    colour_name: str,
+) -> tuple[str, float] | None:
+    '''Recognise canonical marker geometry when the learned crop model is uncertain.'''
+    area = float(cv2.contourArea(contour))
+    perimeter = float(cv2.arcLength(contour, True))
+    if area <= 0 or perimeter <= 0:
+        return None
+    x, y, width, height = cv2.boundingRect(contour)
+    ratio = width / max(height, 1)
+    circularity = float(4 * np.pi * area / (perimeter * perimeter))
+    extent = area / max(width * height, 1)
+    vertices = len(cv2.approxPolyDP(contour, 0.035 * perimeter, True))
+
+    # A filled outer contour includes white/bright symbols that are holes in the
+    # colour mask (STOP lettering, border, or a check mark).
+    filled = np.zeros(source_bgr.shape[:2], np.uint8)
+    cv2.drawContours(filled, [contour], -1, 255, -1)
+    hsv = cv2.cvtColor(source_bgr, cv2.COLOR_BGR2HSV)
+    inside = filled > 0
+    light_symbol_fraction = float(np.mean((hsv[..., 1][inside] < 85) & (hsv[..., 2][inside] > 145))) if np.any(inside) else 0.0
+
+    if colour_name == "green" and 0.72 <= ratio <= 1.38 and circularity >= 0.66 and vertices >= 7 and light_symbol_fraction >= 0.015:
+        confidence = min(0.98, 0.58 + 0.30 * circularity + min(light_symbol_fraction, 0.20))
+        return "safe", confidence
+    if colour_name == "yellow" and 0.60 <= ratio <= 1.55 and 3 <= vertices <= 6 and 0.32 <= extent <= 0.72:
+        confidence = min(0.96, 0.66 + 0.04 * (6 - abs(vertices - 3)))
+        return "warning", confidence
+    if colour_name == "red" and 0.72 <= ratio <= 1.38 and 6 <= vertices <= 12 and circularity >= 0.62 and light_symbol_fraction >= 0.015:
+        confidence = min(0.98, 0.60 + 0.28 * circularity + min(light_symbol_fraction, 0.18))
+        return "stop", confidence
+    return None
+
+
+def box_iou(box_a: tuple[int, int, int, int], box_b: tuple[int, int, int, int]) -> float:
+    x1, y1 = max(box_a[0], box_b[0]), max(box_a[1], box_b[1])
+    x2, y2 = min(box_a[2], box_b[2]), min(box_a[3], box_b[3])
+    intersection = max(0, x2 - x1) * max(0, y2 - y1)
+    area_a = max(0, box_a[2] - box_a[0]) * max(0, box_a[3] - box_a[1])
+    area_b = max(0, box_b[2] - box_b[0]) * max(0, box_b[3] - box_b[1])
+    return intersection / max(area_a + area_b - intersection, 1)
 
 
 def detect_markers(
@@ -478,35 +531,52 @@ def detect_markers(
     confidence_threshold: float = 0.45,
     classification_frame: np.ndarray | None = None,
 ) -> list[MarkerDetection]:
-    '''Propose on the enhanced frame, then recognise from the pre-enhancement pixels.'''
-    mask = colour_candidate_mask(frame_bgr)
-    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    '''Fuse SVM probabilities with colour/shape evidence from original and enhanced pixels.'''
     height, width = frame_bgr.shape[:2]
     source = frame_bgr if classification_frame is None else classification_frame
     if source.shape[:2] != frame_bgr.shape[:2]:
         raise ValueError("Proposal and classification frames must have the same dimensions.")
+    candidates: list[MarkerDetection] = []
+
+    # Original pixels prevent gray-world colour shifts on single-colour images;
+    # enhanced pixels retain the low-light benefit. Duplicates are suppressed later.
+    proposal_frames = [source]
+    if not np.shares_memory(source, frame_bgr):
+        proposal_frames.append(frame_bgr)
+    for proposal_frame in proposal_frames:
+        for colour_name, mask in colour_candidate_masks(proposal_frame).items():
+            contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            for contour in contours:
+                area = cv2.contourArea(contour)
+                if area < MIN_CANDIDATE_AREA:
+                    continue
+                x, y, w, h = cv2.boundingRect(contour)
+                if not 0.38 <= w / max(h, 1) <= 2.6 or w < 14 or h < 14:
+                    continue
+                pad = max(4, int(0.18 * max(w, h)))
+                x1, y1 = max(0, x - pad), max(0, y - pad)
+                x2, y2 = min(width, x + w + pad), min(height, y + h + pad)
+                canonical = canonicalise_marker(source[y1:y2, x1:x2], mask[y1:y2, x1:x2])
+                probabilities = model.predict_proba(extract_features(canonical).reshape(1, -1))[0]
+                scores = {str(label): float(score) for label, score in zip(model.classes_, probabilities)}
+                svm_label = max(scores, key=scores.get)
+                label, confidence = svm_label, scores[svm_label]
+
+                hint = shape_colour_hint(source, contour, colour_name)
+                if hint is not None:
+                    hint_label, hint_confidence = hint
+                    # The learned probability still contributes, but a strong
+                    # canonical marker shape can recover real-style domain shifts.
+                    confidence = max(hint_confidence, 0.70 * hint_confidence + 0.30 * scores.get(hint_label, 0.0))
+                    label = hint_label
+                if label in TARGET_LABELS and confidence >= confidence_threshold:
+                    candidates.append(MarkerDetection(label, confidence, (x, y, x + w, y + h)))
+
     detections: list[MarkerDetection] = []
-    for contour in contours:
-        area = cv2.contourArea(contour)
-        if area < MIN_CANDIDATE_AREA:
+    for candidate in sorted(candidates, key=lambda item: item.confidence, reverse=True):
+        if any(candidate.label == kept.label and box_iou(candidate.box, kept.box) >= 0.45 for kept in detections):
             continue
-        x, y, w, h = cv2.boundingRect(contour)
-        if not 0.38 <= w / max(h, 1) <= 2.6 or w < 14 or h < 14:
-            continue
-        pad = max(4, int(0.18 * max(w, h)))
-        x1, y1 = max(0, x - pad), max(0, y - pad)
-        x2, y2 = min(width, x + w + pad), min(height, y + h + pad)
-        crop = source[y1:y2, x1:x2]
-        crop_mask = mask[y1:y2, x1:x2]
-        canonical = canonicalise_marker(crop, crop_mask)
-        probabilities = model.predict_proba(extract_features(canonical).reshape(1, -1))[0]
-        best_index = int(np.argmax(probabilities))
-        label = str(model.classes_[best_index])
-        confidence = float(probabilities[best_index])
-        if label in TARGET_LABELS and confidence >= confidence_threshold:
-            # Report the tight proposal box; padding is only classification context.
-            detections.append(MarkerDetection(label, confidence, (x, y, x + w, y + h)))
-    detections.sort(key=lambda item: item.confidence, reverse=True)
+        detections.append(candidate)
     return detections
 
 
@@ -764,6 +834,30 @@ try:
 except ValueError:
     pass
 print("Edge-case tests passed: blank scenes are handled and tiny invalid inputs are rejected.")
+
+# Real-style regression inputs supplied during UI testing. These are deliberately
+# separate from model training and verify the colour/shape fusion domain fallback.
+real_style_results = {}
+for expected_label, filename in {
+    "stop": "user_stop_sign.png",
+    "safe": "user_safe_marker.png",
+}.items():
+    path = ARTIFACTS / "real_style_tests" / filename
+    if not path.exists():
+        real_style_results[expected_label] = {"available": False, "detected": False}
+        continue
+    image = cv2.imread(str(path))
+    result = SYSTEM.process_frame(image)
+    match = next((detection for detection in result.detections if detection.label == expected_label), None)
+    assert match is not None, f"Real-style {expected_label} regression image was not detected."
+    cv2.imwrite(str(ARTIFACTS / "real_style_tests" / f"{expected_label}_annotated.png"), result.annotated)
+    real_style_results[expected_label] = {
+        "available": True,
+        "detected": True,
+        "confidence": match.confidence,
+        "box": list(match.box),
+    }
+print("Real-style regression checks:", json.dumps(real_style_results, indent=2))
 """
     ),
     markdown(
@@ -948,6 +1042,7 @@ metrics = {
     "mean_detection_precision": overall_precision,
     "mean_detection_recall": overall_recall,
     "mean_detection_f1": overall_f1,
+    "real_style_regression": real_style_results,
     "performance": performance,
     "video": video_metrics,
     "artifacts": {

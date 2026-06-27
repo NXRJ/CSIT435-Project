@@ -39,7 +39,7 @@ Every member should make at least one genuine code/documentation contribution an
 
 **How is robustness assessed?** Condition-specific held-out sets measure recognition, and generated scenes measure class-aware detection under dim light, rotation, blur, noise, occlusion, clutter, and blank inputs.
 
-**What were the main measured results?** On the saved run, end-to-end scene detection reached 92.5% mean precision, 88.1% mean recall, and 89.8% mean F1. Still-frame processing averaged 13.47 ms or 74.23 FPS, while processed video averaged 13.27 ms/frame or 75.36 FPS. The 100% crop accuracy belongs only to the constrained synthetic held-out set.
+**What were the main measured results?** On the saved run, end-to-end scene detection reached 93.0% mean precision, 94.6% mean recall, and 93.1% mean F1. Still-frame processing averaged 19.96 ms or 50.09 FPS, while processed video averaged 16.75 ms/frame or 59.72 FPS. The supplied real-style stop and safe examples were detected at 98.0% and 94.6%. The 100% crop accuracy belongs only to the constrained synthetic held-out set.
 
 **What happens when nothing is detected?** The UI returns a clear no-marker message rather than failing, while edges and performance information remain available.
 

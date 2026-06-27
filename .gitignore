@@ -7,6 +7,7 @@ __pycache__/
 # Virtual environments
 .venv/
 .venv_qa/
+.venv_train/
 venv/
 
 # Generated temporary QA material
@@ -15,15 +16,20 @@ tmp/
 # OS/editor noise
 .DS_Store
 Thumbs.db
+~$*.docx
 .vscode/
 .idea/
 .agents/
 
 # One-off UI outputs and duplicate working exports
 artifacts/ui_processed_*.mp4
+artifacts/general_object_training/dataset/
+artifacts/general_object_training/runs/
 output/**/*_UPDATED.*
 Project csci 435.docx
 \# Plan csci 435 requirements.txt
+runs/
+yolo11n.pt
 
 # Large optional training/download folders from the earlier prototype
 csci435_accessibility_scene_app/

@@ -497,11 +497,14 @@ doc.add_heading("Object proposal and custom recognition", level=2)
 add_body(
     doc,
     "HSV thresholds form red, yellow and green proposal masks. Opening removes isolated pixels and closing joins "
-    "small gaps. Contours below 300 pixels or outside broad aspect-ratio limits are rejected. Each remaining object "
+    "small gaps. Original and enhanced pixels are both searched using separate colour masks so a dominant single "
+    "colour cannot be lost during balancing and adjacent marker colours cannot merge. Contours below 300 pixels or outside broad aspect-ratio limits are rejected. Each remaining object "
     "is centred on a neutral 96 x 96 canvas at a fixed foreground scale. This canonicalisation solved an important "
     "training/inference mismatch: the recogniser now sees the same object scale during both phases. Proposal masks "
-    "come from the enhanced frame, while recognition uses pre-enhancement validated pixels to preserve the training "
-    "appearance distribution.",
+    "are classified by the SVM using pre-enhancement validated pixels to preserve the training appearance distribution. "
+    "When the synthetic crop model is uncertain, a conservative fusion rule checks canonical evidence: red octagonal "
+    "regions with a bright symbol support stop, yellow triangular regions support warning, and green circular regions "
+    "with a bright internal symbol support safe. This recovered real-style examples without replacing the learned model.",
 )
 add_code_block(
     doc,
@@ -713,6 +716,7 @@ for item in (
     "Tiny 12 x 12 image: rejected with a ValueError instead of entering OpenCV operations.",
     "Dim, rotated, blurred, noisy and occluded scenes: processed and scored condition by condition.",
     "Cluttered scene: false positives are measured rather than removed from the reported results.",
+    f"Supplied real-style regression images: stop detected at {METRICS['real_style_regression']['stop']['confidence']:.1%} and safe detected at {METRICS['real_style_regression']['safe']['confidence']:.1%}.",
     "Generated 90-frame video: successfully encoded, processed and measured with motion/tracking outputs.",
 ):
     add_bullet(doc, item)

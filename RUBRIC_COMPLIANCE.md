@@ -9,7 +9,7 @@ This matrix maps the Spring 2026 brief to concrete submission evidence. Results 
 | UI and UX | 10 | Gradio tabs for image/webcam and video, example input, annotated/enhanced/edge views, guidance, and metrics. | Met |
 | Model selection and training | 10 | Deterministic custom dataset; SVM/random-forest/k-NN comparison; selected model is trained and saved; accuracy/confusion matrix reported. | Met |
 | Architecture and code quality | 10 | Typed classes/functions, configuration, modular notebook sections, error handling, README, dependency lock, architecture diagram, and traceability. | Met; team must push to GitHub/GitLab |
-| Performance | 5 | Saved CPU run: 13.47 ms and 74.23 FPS for still frames; 13.27 ms/frame and 75.36 FPS for video. | Met; exceeds the >=10 FPS target |
+| Performance | 5 | Saved CPU run: 19.96 ms and 50.09 FPS for still frames; 16.75 ms/frame and 59.72 FPS for video. | Met; exceeds the >=10 FPS target |
 | Report quality | 15 | PDF/DOCX with required sections, diagrams, metrics, screenshots, critical analysis, references, and appendices. | Met |
 | Live demonstration and defence | 15 | Runnable local UI, generated sample inputs, 2:05 backup demo video, timed defence guide, fallback paths, and Q&A bank. | Prepared; live delivery remains a team responsibility |
 | Teamwork and contribution | 5 | Five-member proposed responsibility table is included for verification. | Must be verified by the group |
@@ -29,8 +29,9 @@ This matrix maps the Spring 2026 brief to concrete submission evidence. Results 
 - 560 generated custom-training images: 140 each for `stop`, `warning`, `safe`, and `other`.
 - Selected model: RBF SVM after comparison with random forest and k-nearest neighbours.
 - Held-out synthetic crop accuracy: 100.0%, explicitly limited to the constrained synthetic test set.
-- Seven-condition end-to-end scene results: 92.5% mean precision, 88.1% mean recall, and 89.8% mean F1.
-- Saved timing run: 74.23 FPS for still-frame processing and 75.36 FPS for processed video.
+- Seven-condition end-to-end scene results: 93.0% mean precision, 94.6% mean recall, and 93.1% mean F1.
+- Real-style UI regression checks now detect the supplied stop sign at 98.0% and safe marker at 94.6% confidence.
+- Saved timing run: 50.09 FPS for still-frame processing and 59.72 FPS for processed video.
 - Demonstration video duration: 2:05, within the required 2-3 minute range.
 
 ## Items the team must complete outside the files
