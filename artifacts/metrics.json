@@ -1,0 +1,35 @@
+{
+  "dataset": {
+    "total_images": 560,
+    "per_class": 140,
+    "classes": [
+      "stop",
+      "warning",
+      "safe",
+      "other"
+    ]
+  },
+  "selected_model": "SVM (RBF)",
+  "held_out_accuracy": 1.0,
+  "mean_detection_precision": 0.9253098183246136,
+  "mean_detection_recall": 0.880952380952381,
+  "mean_detection_f1": 0.8980913967554244,
+  "performance": {
+    "mean_latency_ms": 13.471894001122564,
+    "median_latency_ms": 13.571450021117926,
+    "p95_latency_ms": 15.077095001470298,
+    "mean_fps": 74.22861254079595,
+    "meets_10_fps_target": true
+  },
+  "video": {
+    "frames": 90,
+    "mean_latency_ms": 13.269268888204047,
+    "mean_fps": 75.36210234528956,
+    "marker_detections": 135,
+    "tracked_motion_regions": 136
+  },
+  "artifacts": {
+    "sample_input_video": "artifacts\\sample_input_video.mp4",
+    "sample_output_video": "artifacts\\sample_processed_video.mp4"
+  }
+}
