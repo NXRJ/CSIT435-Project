@@ -123,6 +123,16 @@ def _load_runtime() -> None:
     globals()["images"] = [None] * int(dataset_metrics.get("total_images", 560))
     globals()["sample_scene_path"] = ARTIFACTS / "sample_scene.png"
     globals()["sample_input_video"] = ARTIFACTS / "sample_input_video.mp4"
+    globals()["sample_scene_examples"] = [
+        str(ARTIFACTS / "sample_scene.png"),
+        str(ARTIFACTS / "sample_scene_dim.png"),
+        str(ARTIFACTS / "sample_scene_noisy.png"),
+    ]
+    globals()["sample_video_examples"] = [
+        str(ARTIFACTS / "sample_input_video.mp4"),
+        str(ARTIFACTS / "sample_input_video_dim.mp4"),
+        str(ARTIFACTS / "sample_input_video_blurred.mp4"),
+    ]
 
     _import_notebook_definitions(
         "def build_gradio_app():",

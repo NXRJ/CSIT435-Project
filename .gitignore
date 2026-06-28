@@ -1,19 +1,14 @@
-# Python/Jupyter
+# Python and Jupyter
 __pycache__/
 *.py[cod]
 .ipynb_checkpoints/
 .pytest_cache/
 
-# Virtual environments
-.venv/
-.venv_qa/
-.venv_train/
+# Local environments
+.venv*/
 venv/
 
-# Generated temporary QA material
-tmp/
-
-# OS/editor noise
+# Editor and operating-system files
 .DS_Store
 Thumbs.db
 ~$*.docx
@@ -21,18 +16,16 @@ Thumbs.db
 .idea/
 .agents/
 
-# One-off UI outputs and duplicate working exports
-artifacts/ui_processed_*.mp4
+# Training caches
 artifacts/general_object_training/dataset/
 artifacts/general_object_training/runs/
-output/**/*_UPDATED.*
-Project csci 435.docx
-\# Plan csci 435 requirements.txt
 runs/
 yolo11n.pt
 
-# Large optional training/download folders from the earlier prototype
-csci435_accessibility_scene_app/
-csci435_accessibility_scene_app/.venv/
-csci435_accessibility_scene_app/data/custom_dataset/
-csci435_accessibility_scene_app/runs/
+# Temporary outputs
+artifacts/ui_processed_*.mp4
+artifacts/sample_annotated.png
+artifacts/sample_edges.png
+artifacts/sample_enhanced.png
+output/**/*_UPDATED.*
+tmp/
