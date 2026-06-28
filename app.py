@@ -110,7 +110,7 @@ def _load_runtime() -> None:
     )
     _import_notebook_definitions(
         "def process_video(",
-        {"open_video_writer", "process_video"},
+        {"open_video_writer", "make_browser_playable", "process_video"},
     )
 
     globals()["classifier"] = joblib.load(MODEL_PATH)

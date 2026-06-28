@@ -7,13 +7,13 @@ title CSCI435 Accessibility Scene Hazard Assistant
 if defined CSCI435_PYTHON (
     if exist "%CSCI435_PYTHON%" (
         set "PYTHON_EXE=%CSCI435_PYTHON%"
-        goto run_app
+        goto check_requirements
     )
 )
 
 if exist ".venv\Scripts\python.exe" (
     set "PYTHON_EXE=.venv\Scripts\python.exe"
-    goto run_app
+    goto check_requirements
 )
 
 echo No project virtual environment was found.
@@ -48,6 +48,16 @@ if errorlevel 1 goto install_failed
 if errorlevel 1 goto install_failed
 
 set "PYTHON_EXE=.venv\Scripts\python.exe"
+goto run_app
+
+:check_requirements
+"%PYTHON_EXE%" -c "import cv2, gradio, imageio_ffmpeg, joblib" >nul 2>&1
+if not errorlevel 1 goto run_app
+
+echo The environment is missing one or more required packages.
+echo Installing the current project requirements...
+"%PYTHON_EXE%" -m pip install -r requirements.txt
+if errorlevel 1 goto install_failed
 
 :run_app
 echo.

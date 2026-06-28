@@ -50,6 +50,8 @@ py -3.12 -m venv .venv
 
 The trained SVM weights are already included. On Windows, we can double-click launch_app.bat. On its first run, it creates .venv and installs the packages from requirements.txt; later launches start the app directly.
 
+Processed videos are converted to H.264 before Gradio displays them. The project installs its own FFmpeg binary through imageio-ffmpeg, so another computer does not need a separate system FFmpeg installation.
+
 The PowerShell command is:
 
 ~~~powershell
